@@ -61,6 +61,7 @@ const TimelineComponent: FC<TimelineProps> = ({
     onAction: props.onAction,
     onFullscreenToggle: props.onFullscreenToggle,
     onSpeedChange: props.onSpeedChange,
+    onZoom: props.onZoom,
   });
 
   const setInternalPosition = (newPosition: number) => {
@@ -122,12 +123,29 @@ const TimelineComponent: FC<TimelineProps> = ({
 
   const controls = (
     <Elem name="topbar">
+      {allowSeek && (
+        <Seeker
+          length={length}
+          step={step}
+          leftOffset={View.settings?.leftOffset}
+          position={currentPosition}
+          seekOffset={seekOffset}
+          seekVisible={seekVisibleWidth}
+          onIndicatorMove={setSeekOffset}
+          onSeek={setInternalPosition}
+          minimap={View.Minimap ? (
+            <View.Minimap/>
+          ): null}
+        />
+      )}
       <Controls
         length={length}
         position={currentPosition}
         frameRate={framerate}
         playing={playing}
         volume={props.volume}
+        speed={speed}
+        zoom={zoom}
         controls={props.controls}
         altHopSize={props.altHopSize}
         customControls={props.customControls}
@@ -146,6 +164,8 @@ const TimelineComponent: FC<TimelineProps> = ({
         onForward={(steps) => setInternalPosition(isDefined(steps) ? currentPosition + steps : length)}
         onPositionChange={setInternalPosition} 
         onToggleCollapsed={setViewCollapsed}
+        onSpeedChange={handlers.onSpeedChange}
+        onZoom={handlers.onZoom}
         formatPosition={formatPosition}
         extraControls={View.Controls && !disableView ? (
           <View.Controls
@@ -156,6 +176,7 @@ const TimelineComponent: FC<TimelineProps> = ({
         ) : null}
         mediaType="timeline"
       />
+=======
 
       {allowSeek && (
         <Seeker
@@ -201,7 +222,7 @@ const TimelineComponent: FC<TimelineProps> = ({
         onDeleteRegion={(id) => handlers.onDeleteRegion?.(id)}
         onSelectRegion={(e, id, select) => handlers.onSelectRegion?.(e, id, select)}
         onSpeedChange={(speed) => handlers.onSpeedChange?.(speed)}
-        onZoom={props.onZoom}
+        onZoom={(zoom) => handlers.onZoom?.(zoom)}
       />
     </Elem>
   );

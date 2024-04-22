@@ -1,3 +1,16 @@
+
+import React, { FC, useCallback, useEffect, useRef, useState } from "react";
+import { Block, Elem } from "../../utils/bem";
+
+import "./TimeDurationControl.styl";
+import { TimeBox } from "./TimeBox";
+
+export interface TimerProps {
+  startTime: number;
+  endTime: number;
+  minTime: number;
+  maxTime: number;
+=======
 import React, { FC } from 'react';
 import { Block } from '../../utils/bem';
 
@@ -18,6 +31,17 @@ export interface TimerProps {
 }
 
 export const TimeDurationControl: FC<TimerProps> = ({
+  startTime,
+  endTime,
+  minTime,
+  maxTime,
+  currentTime,
+  startTimeReadonly = false,
+  endTimeReadonly = true,
+  onChangeStartTime,
+  onChangeEndTime,
+  ...props
+=======
   isSidepanel = false,
   startTime,
   endTime = 0,
@@ -42,6 +66,15 @@ export const TimeDurationControl: FC<TimerProps> = ({
   return (
     <Block name="timer-duration-control">
       <TimeBox
+        readonly={startTimeReadonly}
+        value={_currentTime}
+        onChange={handleChangeCurrentTime}
+      />
+      <TimeBox
+        readonly={endTimeReadonly}
+        value={endTime}
+        onChange={handleChangeEndTime}
+=======
         sidepanel={isSidepanel}
         readonly={startTimeReadonly}
         value={_currentTime}

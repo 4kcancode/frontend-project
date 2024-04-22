@@ -348,6 +348,9 @@ Object.assign(window, {
   },
 });
 
+// Audio enhancements v3
+export const FF_DEV_2715 = "ff_front_DEV_2715_audio_3_280722_short";
+
 function getFeatureFlags() {
   return {
     ...(window.APP_SETTINGS?.feature_flags ?? {}),

@@ -1,3 +1,40 @@
+
+import { CSSProperties, FC, MutableRefObject, MouseEvent as RMouseEvent, useCallback, useContext, useEffect, useRef, useState } from "react";
+import { Block, Elem } from "../../../../utils/bem";
+import { TimelineContext } from "../../Context";
+import { TimelineContextValue, TimelineViewProps } from "../../Types";
+import WaveSurfer from "wavesurfer.js";
+import "./Wave.styl";
+import RegionsPlugin from "wavesurfer.js/src/plugin/regions";
+import TimelinePlugin from "wavesurfer.js/src/plugin/timeline";
+import { TimelinePlugin as CustomTimelinePlugin } from "../../Plugins/Timeline";
+import { formatTimeCallback, secondaryLabelInterval, timeInterval } from "./Utils";
+import { clamp, isDefined, isMacOS } from "../../../../utils/utilities";
+import { Range } from "../../../../common/Range/Range";
+import { IconFast, IconSlow, IconZoomIn, IconZoomOut } from "../../../../assets/icons";
+import { Space } from "../../../../common/Space/Space";
+import CursorPlugin from "wavesurfer.js/src/plugin/cursor";
+import { useMemoizedHandlers } from "../../../../hooks/useMemoizedHandlers";
+import { useMemo } from "react";
+import { WaveSurferParams } from "wavesurfer.js/types/params";
+import ResizeObserver from "../../../../utils/resize-observer";
+import { FF_DEV_2715, isFF } from "../../../../utils/feature-flags";
+
+export const WS_ZOOM_X = {
+  min: 1,
+  max: 1500,
+  step: 10,
+  default: 1,
+  defaultValue: 1,
+};
+
+const SPEED = {
+  min: 0.5,
+  max: 2,
+  step: 0.01,
+  default: 1,
+};
+=======
 import { CSSProperties, FC, MutableRefObject, MouseEvent as RMouseEvent, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { Block, Elem } from '../../../../utils/bem';
 import { TimelineContext } from '../../Context';
@@ -41,6 +78,7 @@ export const Wave: FC<TimelineViewProps> = ({
   const waveRef = useRef<HTMLElement>();
   const timelineRef = useRef<HTMLElement>();
   const bodyRef = useRef<HTMLElement>();
+  const cursorRef = useRef<HTMLElement>();
 
   const [currentZoom, setCurrentZoom] = useState(zoom);
   const [loading, setLoading] = useState(true);
@@ -234,6 +272,13 @@ export const Wave: FC<TimelineViewProps> = ({
     ws.current?.setVolume(volume);
   }, [volume]);
 
+  useEffect(() => {
+    if (isFF(FF_DEV_2715)) {
+      setCurrentZoom(zoom);
+      ws.current?.zoom(zoom);
+    }
+  }, [zoom]);
+
   // Handle Y scaling
   useEffect(() => {
     const wsi = ws.current;
@@ -301,14 +346,82 @@ export const Wave: FC<TimelineViewProps> = ({
 
   // Cursor styles
   const cursorStyle = useMemo<CSSProperties>(() => {
+    const isNewTimelineStyle = isFF(FF_DEV_2715);
+
     return {
       left: cursorPosition,
-      width: Number(data.cursorwidth ?? 2),
-      background: data.cursorcolor,
+      width: isNewTimelineStyle ? 1 : Number(data.cursorwidth ?? 2),
+      background: isNewTimelineStyle ? "#1f1f1f" : data.cursorcolor,
     };
   }, [cursorPosition]);
 
+  const onCursorMouseDown = useCallback((e: any) => {
+    if(!isFF(FF_DEV_2715) || !waveRef.current || !cursorRef.current || !ws.current) return;
+
+    const wsi = ws.current;
+    const start = waveRef.current.getBoundingClientRect().left;
+    const end = waveRef.current.getBoundingClientRect().right;
+    const wasPlaying = wsi.isPlaying();
+
+    if (wasPlaying) handlers.onPause();
+
+    function moveCursor(pageX: number) {
+      if (!cursorRef.current) return;
+      cursorRef.current.style.left = `${Math.min(Math.max(pageX - start, 0), end)}px`;
+    }
+
+    moveCursor(e.clientX);
+
+    function onDocumentMouseMove(docEvent: any) {
+      moveCursor(docEvent.clientX);
+    }
+
+    function onDocumentMouseUp() {
+      scrollTo(cursorRef.current!.getBoundingClientRect().left - waveRef.current!.getBoundingClientRect().left);
+      if (wasPlaying) handlers.onPlay();
+      document.removeEventListener('mousemove', onDocumentMouseMove);
+      document.removeEventListener('mouseup', onDocumentMouseUp);
+    }
+
+    document.addEventListener('mousemove', onDocumentMouseMove);
+    document.addEventListener('mouseup', onDocumentMouseUp);
+  }, []);
+
+  const onCursorDragStart = useCallback(() => {
+    if(!isFF(FF_DEV_2715)) return;
+
+    return false;
+  }, []);
+
   return (
+    <Block name="wave" ref={rootRef} mod={{ 'with-playhead': isFF(FF_DEV_2715), compact: isFF(FF_DEV_2715) }}>
+      {!isFF(FF_DEV_2715) && (
+        <Elem name="controls">
+          <Space spread style={{ gridAutoColumns: 'auto' }}>
+            <Range
+              continuous
+              value={speed}
+              {...SPEED}
+              resetValue={SPEED.default}
+              minIcon={<IconSlow style={{ color: "#99A0AE" }} />}
+              maxIcon={<IconFast style={{ color: "#99A0AE" }} />}
+              onChange={(value) => onSpeedChange?.(Number(value))}
+            />
+            <Range
+              continuous
+              value={currentZoom}
+              {...WS_ZOOM_X}
+              resetValue={WS_ZOOM_X.default}
+              minIcon={<IconZoomOut />}
+              maxIcon={<IconZoomIn />}
+              onChange={value =>  setZoom(Number(value)) }
+            />
+          </Space>
+        </Elem>
+      )}
+      <Elem name="wrapper" mod={isFF(FF_DEV_2715) ? {  layout: 'stack', edge: 'relaxed' } : {}}>
+        {isFF(FF_DEV_2715) && <Elem name="timeline" ref={timelineRef} mod={{ position: 'outside', placement: 'top'  }} onClick={onTimelineClick} />}
+=======
     <Block name="wave" ref={rootRef}>
       <Elem name="controls">
         <Space spread style={{ gridAutoColumns: 'auto' }}>
@@ -342,24 +455,26 @@ export const Wave: FC<TimelineViewProps> = ({
           ref={bodyRef}
           onClick={onTimelineClick}
         >
-          <Elem name="cursor" style={cursorStyle}/>
+          <Elem name="cursor" ref={cursorRef} style={cursorStyle} onMouseDown={onCursorMouseDown} onDragStart={onCursorDragStart} />
           <Elem name="surfer" ref={waveRef} onClick={(e: RMouseEvent<HTMLElement>) => e.stopPropagation()}/>
-          <Elem name="timeline" ref={timelineRef} />
+          {!isFF(FF_DEV_2715) && <Elem name="timeline" ref={timelineRef} mod={{ position: 'inside', placement: 'bottom' }} />}
           {loading && <Elem name="loader" mod={{ animated: true }}/>}
         </Elem>
-        <Elem name="scale">
-          <Range
-            min={1}
-            max={50}
-            step={0.1}
-            reverse
-            continuous
-            value={scale}
-            resetValue={1}
-            align="vertical"
-            onChange={(value) => setScale(Number(value))}
-          />
-        </Elem>
+        {!isFF(FF_DEV_2715) && (
+          <Elem name="scale">
+            <Range
+              min={1}
+              max={50}
+              step={0.1}
+              reverse
+              continuous
+              value={scale}
+              resetValue={1}
+              align="vertical"
+              onChange={(value) => setScale(Number(value))}
+            />
+          </Elem>
+        )}
       </Elem>
     </Block>
   );
@@ -413,6 +528,9 @@ const useWaveSurfer = ({
       height: Number(containter?.current?.parentElement?.offsetHeight ?? 146),
       hideScrollbar: true,
       maxCanvasWidth: 8000,
+      waveColor: isFF(FF_DEV_2715) ? "#BEB9C5": "#D5D5D5",
+      progressColor: isFF(FF_DEV_2715) ? "#BEB9C5" : "#656F83",
+=======
       waveColor: '#D5D5D5',
       progressColor: '#656F83',
       cursorWidth: 0,
@@ -427,7 +545,20 @@ const useWaveSurfer = ({
           deferInit: true,
           dragSelection: true,
         }),
-        TimelinePlugin.create({
+        isFF(FF_DEV_2715) ? CustomTimelinePlugin.create({
+          deferInit: true,
+          container: timelineContainer.current!,
+          formatTimeCallback,
+          timeInterval,
+          secondaryLabelInterval,
+          primaryColor: "#BEB9C5",
+          secondaryColor: "#BEB9C5",
+          primaryFontColor: "#413C4A",
+          secondaryFontColor: "#413C4A",
+          labelPadding: 6,
+          unlabeledNotchColor: "#BEB9C5",
+          notchPercentHeight: 50,
+        }) : TimelinePlugin.create({
           deferInit: true,
           container: timelineContainer.current!,
           formatTimeCallback,

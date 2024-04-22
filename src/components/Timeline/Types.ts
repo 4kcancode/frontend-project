@@ -152,6 +152,7 @@ export interface TimelineControlsProps {
   volume?: number;
   speed?: number;
   zoom?: number;
+=======
   amp?: number;
   duration?: number;
   disableFrames?: boolean;
@@ -169,6 +170,14 @@ export interface TimelineControlsProps {
   onToggleCollapsed: (collapsed: boolean) => void;
   onStepBackward: TimelineControlsStepHandler;
   onStepForward: TimelineControlsStepHandler;
+  formatPosition?: TimelineProps["formatPosition"];
+  onPlay?: TimelineProps["onPlay"];
+  onPause?: TimelineProps["onPause"];
+  onFullScreenToggle: TimelineProps["onFullscreenToggle"];
+  onVolumeChange: TimelineProps["onVolumeChange"];
+  onSpeedChange: TimelineProps["onSpeedChange"];
+  onZoom: TimelineProps["onZoom"];
+=======
   formatPosition?: TimelineProps['formatPosition'];
   onPlay?: TimelineProps['onPlay'];
   onPause?: TimelineProps['onPause'];

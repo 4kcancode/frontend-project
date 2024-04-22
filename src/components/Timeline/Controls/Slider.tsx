@@ -1,3 +1,10 @@
+
+import React, { FC, useEffect, useRef, useState } from "react";
+import { Block, Elem } from "../../../utils/bem";
+
+import "./Slider.styl";
+import { Info } from "./Info";
+=======
 import React, { FC, useEffect, useRef, useState } from 'react';
 import { Block, Elem } from '../../../utils/bem';
 
@@ -20,22 +27,35 @@ export const Slider: FC<SliderProps> = ({
   max,
   min,
   value,
+  step,
+  onChange,
+  ...props
+}) => {
+  const sliderRef = useRef<HTMLDivElement>();
+  const [inputVolumeError, setInputVolumeError] = useState(min);
+=======
   step = 1,
   onChange,
 }) => {
   const sliderRef = useRef<HTMLDivElement>();
   const [valueError, setValueError] = useState<number|string|undefined>();
-
   useEffect(() => {
     changeBackgroundSize();
   }, [value]);
 
   const changeBackgroundSize = () => {
+    if(sliderRef.current)
+=======
     if (sliderRef.current)
       sliderRef.current.style.backgroundSize = ((value - min) * 100) / (max - min) + '% 100%';
   };
 
   const handleChangeInputValue = (e: React.FormEvent<HTMLInputElement>) => {
+    setInputVolumeError(min);
+
+    if (parseFloat(e.currentTarget.value) > max || parseFloat(e.currentTarget.value) < min) {
+      setInputVolumeError(parseFloat(e.currentTarget.value));
+=======
     setValueError(undefined);
 
     // match only numbers and dot
@@ -63,12 +83,22 @@ export const Slider: FC<SliderProps> = ({
 
   const renderInput = () => {
     return (
+      <Elem name={"volume"}>
+=======
       <Elem name="control">
         <Elem name="info">
           {description}
           {info && <Info text={info} />}
         </Elem>
         <Elem
+          name="input-volume"
+          tag="input"
+          type="text"
+          mod={(inputVolumeError > max || inputVolumeError < min) && { error:'volume' }}
+          min={min}
+          max={max}
+          value={(inputVolumeError === min ) ? Math.round(value) : inputVolumeError}
+=======
           name="input"
           tag="input"
           type="text"
@@ -91,6 +121,8 @@ export const Slider: FC<SliderProps> = ({
         type="range"
         min={min}
         max={max}
+        step={step || 1}
+=======
         step={step}
         value={value}
         onChange={handleChangeInputValue}

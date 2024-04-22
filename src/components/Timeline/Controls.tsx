@@ -1,3 +1,5 @@
+import React, { FC, memo, MouseEvent, useCallback, useContext, useEffect, useMemo, useState } from "react";
+=======
 import React, { FC, memo, MouseEvent, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import {
   IconBackward,
@@ -14,6 +16,20 @@ import {
   IconPlay,
   IconPrev,
   IconRewind
+} from "../../assets/icons/timeline";
+import { Button, ButtonProps } from "../../common/Button/Button";
+import { Space } from "../../common/Space/Space";
+import { Block, Elem } from "../../utils/bem";
+import { isDefined } from "../../utils/utilities";
+import { TimelineContext } from "./Context";
+import "./Controls.styl";
+import * as SideControls from "./SideControls";
+import { TimelineControlsFormatterOptions, TimelineControlsProps, TimelineControlsStepHandler, TimelineProps, TimelineStepFunction } from "./Types";
+import { FF_DEV_2715, isFF } from "../../utils/feature-flags";
+import { AudioControl } from "./Controls/AudioControl";
+import { ConfigControl } from "./Controls/ConfigControl";
+import { TimeDurationControl } from "../TimeDurationControl/TimeDurationControl";
+=======
 } from '../../assets/icons/timeline';
 import { Button, ButtonProps } from '../../common/Button/Button';
 import { Space } from '../../common/Space/Space';
@@ -96,6 +112,8 @@ export const Controls: FC<TimelineControlsProps> = memo(({
     playing ? onPause?.() : onPlay?.();
   }, [playing, onPlay, onPause]);
 
+  const onSetVolumeModal = () => {
+=======
   const onSetVolumeModal = (e: MouseEvent<HTMLButtonElement>) => {
     e.stopPropagation();
     if (configModal) setConfigModal(false);
@@ -103,6 +121,8 @@ export const Controls: FC<TimelineControlsProps> = memo(({
     setAudioModal(!audioModal);
   };
 
+  const onSetConfigModal = () => {
+=======
   const onSetConfigModal = (e: MouseEvent<HTMLButtonElement>) => {
     e.stopPropagation();
 
@@ -116,6 +136,12 @@ export const Controls: FC<TimelineControlsProps> = memo(({
       <Elem name="group" tag={Space} size="small" style={{ gridAutoColumns: 'auto' }}>
         <ConfigControl
           onSetModal={onSetConfigModal}
+          onZoom={(zoom: number) => props.onZoom?.(zoom)}
+          configModal={configModal}
+          onSpeedChange={(speed: number) => onSpeedChange?.(speed)}
+          speed={props.speed || 0}
+          zoom={props.zoom || 0}
+=======
           onAmpChange={props.onAmpChange}
           configModal={configModal}
           onSpeedChange={(speed: number) => onSpeedChange?.(speed)}
@@ -135,6 +161,7 @@ export const Controls: FC<TimelineControlsProps> = memo(({
     );
   };
 
+=======
   const closeModalHandler = () => {
     setConfigModal(false);
     setAudioModal(false);
@@ -164,17 +191,35 @@ export const Controls: FC<TimelineControlsProps> = memo(({
   }, [altControlsMode]);
 
   const onTimeUpdateChange = (value: number) => {
+    onPositionChange(value * frameRate);
+=======
     onPositionChange(value);
   };
 
   return (
     <Block name="timeline-controls" tag={Space} spread style={{ gridAutoColumns: 'auto' }}>
+      {isFF(FF_DEV_2715) ? renderControls() : (
+=======
       {isFF(FF_DEV_2715) && mediaType === 'audio' ? renderControls() : (
         <Elem name="group" tag={Space} size="small" style={{ gridAutoColumns: 'auto' }}>
           {props.controls && Object.entries(props.controls).map(([name, enabled]) => {
             if (enabled === false) return;
 
             const Component = SideControls[name as keyof typeof SideControls];
+            return isDefined(Component) && (
+              <Component
+                key={name}
+                length={length}
+                position={position - 1}
+                volume={props.volume}
+                onPositionChange={onPositionChange}
+                onVolumeChange={props.onVolumeChange}
+              />
+            );
+          })}
+        </Elem>
+      )}
+=======
 
             return isDefined(Component) && (
               <Component
@@ -308,6 +353,25 @@ export const Controls: FC<TimelineControlsProps> = memo(({
       </Elem>
 
       <Elem name="group" tag={Space} size="small">
+        {isFF(FF_DEV_2715) ? (
+          <TimeDurationControl
+            startTime={0}
+            endTime={duration}
+            minTime={0}
+            maxTime={duration}
+            currentTime={currentTime}
+            onChangeStartTime={onTimeUpdateChange}
+          />
+        ) : (
+          <TimeDisplay
+            currentTime={currentTime}
+            duration={duration}
+            length={length}
+            position={position}
+            framerate={frameRate}
+            formatPosition={formatPosition}
+          />
+=======
         {isFF(FF_DEV_2715) && mediaType === 'audio' ? (
           <>
             {customControls?.right}
