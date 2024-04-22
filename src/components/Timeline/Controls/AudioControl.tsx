@@ -1,3 +1,4 @@
+
 import React, { FC, useEffect, useState } from "react";
 import { Block, Elem } from "../../../utils/bem";
 
@@ -7,12 +8,24 @@ import { ControlButton } from "../Controls";
 import { Slider } from './Slider';
 
 const MAX_VOL = 200;
+=======
+import React, { FC, MouseEvent, useEffect, useState } from 'react';
+import { Block, Elem } from '../../../utils/bem';
+
+import './AudioControl.styl';
+import { IconSoundConfig, IconSoundMutedConfig } from '../../../assets/icons/timeline';
+import { ControlButton } from '../Controls';
+import { Slider } from './Slider';
+
+const MAX_VOL = 100;
 
 export interface AudioControlProps {
   volume: number;
   audioModal: boolean;
   onVolumeChange?: (volume: number) => void;
   onSetModal?: () => void;
+=======
+  onSetModal?: (e: MouseEvent<HTMLButtonElement>) => void;
 }
 
 export const AudioControl: FC<AudioControlProps> = ({
@@ -21,6 +34,7 @@ export const AudioControl: FC<AudioControlProps> = ({
   onSetModal,
   audioModal,
   ...props
+=======
 }) => {
   const [isMuted, setMute] = useState(false);
 
@@ -41,6 +55,8 @@ export const AudioControl: FC<AudioControlProps> = ({
     }
     if (_volumeValue > MAX_VOL) {
       onVolumeChange?.(1);
+=======
+      onVolumeChange?.(MAX_VOL / 100);
       return;
     } else if (_volumeValue < 0) {
       onVolumeChange?.(0);
@@ -65,6 +81,11 @@ export const AudioControl: FC<AudioControlProps> = ({
           onChange={handleSetVolume}
           description={"Volume"}
           info={"Increase or decrease the appearance of amplitude"}
+=======
+          value={Math.round(volume * MAX_VOL)}
+          onChange={handleSetVolume}
+          description={'Volume'}
+          info={'Increase or decrease the volume of the audio'}
         />
         {renderMuteButton()}
       </Elem>
@@ -74,6 +95,8 @@ export const AudioControl: FC<AudioControlProps> = ({
   const renderMuteButton = () => {
     return (
       <Elem name={"mute"}>
+=======
+      <Elem name={'mute'}>
         <Elem
           name="mute-button"
           onClick={handleSetMute}
@@ -86,6 +109,8 @@ export const AudioControl: FC<AudioControlProps> = ({
 
   return (
     <Block name="audio-control">
+=======
+    <Block name="audio-control" onClick={(e: MouseEvent<HTMLButtonElement>) => e.stopPropagation()}>
       <ControlButton
         look={audioModal ? 'active' : undefined}
         onClick={onSetModal}
