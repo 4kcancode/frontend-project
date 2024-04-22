@@ -1,3 +1,4 @@
+import { guidGenerator } from '../../../utils/unique';
 import { Events } from '../Common/Events';
 import { __DEBUG__ } from '../Common/Utils';
 import { AudioDecoder, DEFAULT_FREQUENCY_HZ } from './AudioDecoder';
@@ -210,6 +211,28 @@ export class WaveformAudio extends Events<WaveformAudioEvents> {
     if (!this.src || !this.el) return;
     
     this.el.src = this.src;
+    this.el.src = `${this.src}?lsv=${guidGenerator()}`;
+    this.el.load();
+  }
+
+  /**
+   * In order for the audio to playback sound immediately, we need to force the browser to buffer the audio.
+   * This works by just playing the audio and then immediately pausing it.
+   */
+  private async forceBuffer() {
+    if (!this.el) return;
+
+    try {
+      await this.el.play();
+      this.el.pause();
+    } catch {
+      // ignore
+    } finally {
+      if (this.el) {
+        this.el.currentTime = 0;
+        this.el.muted = false;
+      }
+    }
   }
 
   private createAudioDecoder() {

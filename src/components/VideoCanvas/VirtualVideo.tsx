@@ -1,7 +1,8 @@
 import { DetailedHTMLProps, forwardRef, useCallback, useEffect, useRef, VideoHTMLAttributes } from 'react';
 import InfoModal from '../../components/Infomodal/Infomodal';
 
-
+=======
+import { guidGenerator } from '../../utils/unique';
 type VirtualVideoProps = DetailedHTMLProps<VideoHTMLAttributes<HTMLVideoElement>, HTMLVideoElement> & {
   canPlayType?: (supported: boolean) => void,
 };
@@ -11,7 +12,7 @@ const DEBUG_MODE = false;
 const canPlayUrl = async (url: string) => {
   const video = document.createElement('video');
 
-  const fileMeta = await fetch(url, {
+  const fileMeta = await fetch(`${url}?lsv=${guidGenerator()}`, {
     method: 'HEAD',
   });
 
@@ -122,7 +123,7 @@ export const VirtualVideo = forwardRef<HTMLVideoElement, VirtualVideoProps>((pro
 
     const sourceEl = document.createElement('source');
 
-    sourceEl.setAttribute('src', props.src ?? '');
+    sourceEl.setAttribute('src', `${props.src}?lsv=${guidGenerator()}` ?? '');
     video.current?.appendChild(sourceEl);
 
     source.current = sourceEl;
