@@ -2,7 +2,8 @@ import { DetailedHTMLProps, forwardRef, useCallback, useEffect, useRef, VideoHTM
 import InfoModal from '../../components/Infomodal/Infomodal';
 import { FF_LSDV_4711, isFF } from '../../utils/feature-flags';
 
-
+=======
+import { guidGenerator } from '../../utils/unique';
 type VirtualVideoProps = DetailedHTMLProps<VideoHTMLAttributes<HTMLVideoElement>, HTMLVideoElement> & {
   canPlayType?: (supported: boolean) => void,
 };
@@ -55,6 +56,10 @@ export const canPlayUrl = async (url: string) => {
         'Range': 'bytes=0-0',
       },
     });
+=======
+  const fileMeta = await fetch(`${url}?lsv=${guidGenerator()}`, {
+    method: 'HEAD',
+  });
 
     fileMimeType = fileMeta.headers.get('content-type');
   }
@@ -167,7 +172,7 @@ export const VirtualVideo = forwardRef<HTMLVideoElement, VirtualVideoProps>((pro
 
     const sourceEl = document.createElement('source');
 
-    sourceEl.setAttribute('src', props.src ?? '');
+    sourceEl.setAttribute('src', `${props.src}?lsv=${guidGenerator()}` ?? '');
     video.current?.appendChild(sourceEl);
 
     source.current = sourceEl;
