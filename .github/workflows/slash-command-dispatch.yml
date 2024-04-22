@@ -40,7 +40,7 @@ jobs:
       - name: Slash Command Dispatch
         id: scd
         if: steps.determine_command.outputs.command_state != 'unknown'
-        uses: peter-evans/slash-command-dispatch@v3
+        uses: peter-evans/slash-command-dispatch@v4
         with:
           token: ${{ secrets.GIT_PAT }}
           issue-type: "pull-request"
