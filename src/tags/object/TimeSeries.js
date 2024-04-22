@@ -7,25 +7,24 @@ import { Spin } from 'antd';
 
 import ObjectBase from './Base';
 import ObjectTag from '../../components/Tags/Object';
+import { errorBuilder } from '../../core/DataValidator/ConfigValidator';
 import Registry from '../../core/Registry';
 import Tree from '../../core/Tree';
 import Types from '../../core/Types';
-import { restoreNewsnapshot } from '../../core/Helpers';
 import {
   checkD3EventLoop,
-  fixMobxObserve,
   formatTrackerTime,
   getOptimalWidth,
   getRegionColor,
   idFromValue,
   sparseValues
 } from './TimeSeries/helpers';
-import { parseCSV, tryToParseJSON } from '../../utils/data';
-import { errorBuilder } from '../../core/DataValidator/ConfigValidator';
+import { AnnotationMixin } from '../../mixins/AnnotationMixin';
 import PersistentStateMixin from '../../mixins/PersistentState';
+import { parseCSV, tryToParseJSON } from '../../utils/data';
+import { fixMobxObserve } from '../../utils/utilities';
 
 import './TimeSeries/Channel';
-import { AnnotationMixin } from '../../mixins/AnnotationMixin';
 
 /**
  * The `TimeSeries` tag can be used to label time series data. Read more about Time Series Labeling on [the time series template page](../templates/time_series.html).
@@ -106,6 +105,7 @@ const Model = types
     zoomedRange: 0,
     scale: 1,
     headers: [],
+    slices: null,
   }))
   .views(self => ({
     get regionsTimeRanges() {
@@ -125,10 +125,6 @@ const Model = types
 
     get store() {
       return getRoot(self);
-    },
-
-    get regs() {
-      return self.annotation.regionStore.regions.filter(r => r.object === self);
     },
 
     get isDate() {
@@ -264,7 +260,7 @@ const Model = types
         slices[i] = data.slice(slice * i, slice * i + slice + 1);
       }
       slices.push(data.slice(slice * (count - 1)));
-      self.slices = slices;
+      self.setSlices(slices);
       return slices;
     },
 
@@ -285,6 +281,21 @@ const Model = types
       };
     },
 
+    get _format() {
+      const { timedisplayformat: format, isDate } = self;
+
+      if (format === 'date') return formatTrackerTime;
+      else if (format) return isDate ? d3.utcFormat(format) : d3.format(format);
+      else return String;
+    },
+
+    get _formatDuration() {
+      const { durationdisplayformat: format, isDate } = self;
+
+      if (format) return isDate ? d3.utcFormat(format) : d3.format(format);
+      else return String;
+    },
+
     states() {
       return self.annotation.toNames.get(self.name);
     },
@@ -296,23 +307,10 @@ const Model = types
     },
 
     formatTime(time) {
-      if (!self._format) {
-        const { timedisplayformat: format, isDate } = self;
-
-        if (format === 'date') self._format = formatTrackerTime;
-        else if (format) self._format = isDate ? d3.utcFormat(format) : d3.format(format);
-        else self._format = String;
-      }
       return self._format(time);
     },
 
     formatDuration(duration) {
-      if (!self._formatDuration) {
-        const { durationdisplayformat: format, isDate } = self;
-
-        if (format) self._formatDuration = isDate ? d3.utcFormat(format) : d3.format(format);
-        else self._formatDuration = String;
-      }
       return self._formatDuration(duration);
     },
 
@@ -334,6 +332,10 @@ const Model = types
 
     setScale(scale) {
       self.scale = scale;
+    },
+
+    setSlices(slices) {
+      self.slices = slices;
     },
 
     updateView() {
@@ -383,22 +385,6 @@ const Model = types
 
     throttledRangeUpdate() {
       return throttle(self.updateTR, 100);
-    },
-
-    fromStateJSON(obj, fromModel) {
-      if (obj.value.choices) {
-        self.annotation.names.get(obj.from_name).fromStateJSON(obj);
-      }
-
-      if ('timeserieslabels' in obj.value) {
-        const states = restoreNewsnapshot(fromModel);
-
-        states.fromStateJSON(obj);
-
-        self.createRegion(obj.value.start, obj.value.end, [states]);
-
-        self.updateView();
-      }
     },
 
     addRegion(start, end) {
@@ -821,12 +807,6 @@ const Overview = observer(({ item, data, series }) => {
 
 const HtxTimeSeriesViewRTS = ({ item }) => {
   const ref = React.createRef();
-
-  React.useEffect(() => {
-    if (item?.brushRange?.length) {
-      item._nodeReference = ref.current;
-    }
-  }, [item, ref]);
 
   // the last thing updated during initialisation
   if (!item?.brushRange?.length || !item.data)

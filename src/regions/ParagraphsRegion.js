@@ -1,4 +1,4 @@
-import { types } from 'mobx-state-tree';
+import { isAlive, types } from 'mobx-state-tree';
 
 import NormalizationMixin from '../mixins/Normalization';
 import RegionsMixin from '../mixins/Regions';
@@ -27,10 +27,11 @@ const Model = types
   .volatile(() => ({
     text: '',
     hideable: true,
+    _range: null,
   }))
   .views(self => ({
     get parent() {
-      return self.object;
+      return isAlive(self) ? self.object : null;
     },
     getRegionElement() {
       return self._spans?.[0];
@@ -43,6 +44,10 @@ const Model = types
 
     setText(text) {
       self.text = text;
+    },
+
+    setRange(range) {
+      self._range = range;
     },
 
     fixOffsets(startOffset, endOffset) {
